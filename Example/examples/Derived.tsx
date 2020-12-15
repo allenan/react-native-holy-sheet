@@ -24,7 +24,6 @@ const Derived = () => {
       transform: [
         {
           translateY: translateY.value,
-          // translateY: snapProgress.value * -100,
         },
       ],
     }

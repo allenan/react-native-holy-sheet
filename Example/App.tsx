@@ -16,6 +16,7 @@ import Examples from './screens/Examples'
 import FlatList from './examples/FlatList'
 import Horizontal from './examples/Horizontal'
 import Derived from './examples/Derived'
+import Imperative from './examples/Imperative'
 
 const Stack = createStackNavigator()
 
@@ -39,6 +40,11 @@ const App = () => {
           name="Derived"
           component={Derived}
           options={{ title: 'Derived Value' }}
+        />
+        <Stack.Screen
+          name="Imperative"
+          component={Imperative}
+          options={{ title: 'Imperative Snap To' }}
         />
       </Stack.Navigator>
     </NavigationContainer>

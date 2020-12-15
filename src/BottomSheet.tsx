@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState, useImperativeHandle, forwardRef } from 'react'
 import { FlatList, StyleProp, View, ViewStyle, ScrollView, StyleSheet } from 'react-native'
 import {
   NativeViewGestureHandler,
@@ -29,6 +29,7 @@ type Props = {
   style?: StyleProp<ViewStyle>
   containerStyle?: StyleProp<ViewStyle>
   snapProgress?: Animated.SharedValue<number>
+  children?: any
 }
 
 type FlatListProps = {
@@ -52,7 +53,12 @@ function clamp(number: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, number))
 }
 
-const BottomSheet: React.FC<Props> = (props) => {
+type BottomSheetHandle = {
+  snapTo: (index?: number) => void
+}
+
+// const BottomSheet: React.FC<Props> = (props, ref) => {
+const BottomSheet = React.forwardRef((props: Props, ref: React.Ref<BottomSheetHandle>) => {
   const {
     snapPoints,
     initialSnapIndex,
@@ -67,23 +73,29 @@ const BottomSheet: React.FC<Props> = (props) => {
 
   // trigger a re-render on mount in order to get maxDeltaY
   // on the outer tap gesture handler to register ¯\_(ツ)_/¯
-  const [_, triggerRerender] = useState(false)
+  const [_, triggerRerender] = useState<boolean>(false)
   useEffect(() => {
     triggerRerender(true)
   }, [])
 
   const maxSnap = snapPoints[snapPoints.length - 1]
 
-  const tapRef = useRef()
-  const headerRef = useRef()
-  const panRef = useRef()
-  const scrollRef = useRef()
+  const tapRef = useRef<TapGestureHandler>(null)
+  const headerRef = useRef<PanGestureHandler>(null)
+  const panRef = useRef<PanGestureHandler>(null)
+  const scrollRef = useRef<NativeViewGestureHandler>(null)
 
   const translation = useSharedValue<number>(-snapPoints[initialSnapIndex])
   const snapIndex = useSharedValue<number>(initialSnapIndex)
   const lastSnap = useSharedValue<number>(snapPoints[initialSnapIndex])
   const scrollOffset = useSharedValue<number>(0)
   const isSnapping = useSharedValue({ fromIndex: 0, toIndex: 0, active: false })
+
+  React.useImperativeHandle(ref, () => ({
+    snapTo(index?: number): void {
+      snapTo(index || 0)
+    },
+  }))
 
   // if the invoking component passes in a snapProgress sharedValue, we will
   // derive that value from the sharedValues within this component
@@ -104,7 +116,7 @@ const BottomSheet: React.FC<Props> = (props) => {
   }
 
   // spring the sheet to a snap point referenced by index
-  function setSnapPoint(index: number) {
+  function snapTo(index: number) {
     'worklet'
 
     const clampedIndex = clamp(index, 0, snapPoints.length - 1)
@@ -119,14 +131,19 @@ const BottomSheet: React.FC<Props> = (props) => {
     })
   }
 
+  type GestureContext = {
+    startY: number
+    offsetY: number
+  }
+
   const gestureHandler = useAnimatedGestureHandler({
-    onStart: (_event, ctx) => {
+    onStart: (_event, ctx: GestureContext) => {
       // store the starting y position and the scroll offset in the
       // context object for future refernce in this gesture
       ctx.startY = translation.value
       ctx.offsetY = scrollOffset.value
     },
-    onActive: (event, ctx) => {
+    onActive: (event, ctx: GestureContext) => {
       // the next translation value is the sum of the starting
       // y position and the gesture in the translation
       let nextValue = ctx.startY + event.translationY
@@ -143,7 +160,7 @@ const BottomSheet: React.FC<Props> = (props) => {
         translation.value = nextValue
       }
     },
-    onEnd: (event, ctx) => {
+    onEnd: (event, ctx: GestureContext) => {
       if (event.translationY > 0 && ctx.offsetY - event.translationY > 0) {
         // if we're gesturing down, but we haven't scrolled the scrollview
         // all the way back to the top, then don't snap
@@ -152,27 +169,27 @@ const BottomSheet: React.FC<Props> = (props) => {
 
       // snap to the next snap point
       if (event.translationY < 0) {
-        setSnapPoint(snapIndex.value + 1)
+        snapTo(snapIndex.value + 1)
       } else {
-        setSnapPoint(snapIndex.value - 1)
+        snapTo(snapIndex.value - 1)
       }
     },
   })
 
   const headerGestureHandler = useAnimatedGestureHandler({
-    onStart: (_, ctx) => {
+    onStart: (_, ctx: GestureContext) => {
       ctx.startY = translation.value
     },
-    onActive: (event, ctx) => {
+    onActive: (event, ctx: GestureContext) => {
       // gestures on the header should move the sheet no matter what
       translation.value = ctx.startY + event.translationY
     },
     onEnd: (event) => {
       // snap to the next snap point
       if (event.translationY < 0) {
-        setSnapPoint(snapIndex.value + 1)
+        snapTo(snapIndex.value + 1)
       } else {
-        setSnapPoint(snapIndex.value - 1)
+        snapTo(snapIndex.value - 1)
       }
     },
   })
@@ -262,7 +279,7 @@ const BottomSheet: React.FC<Props> = (props) => {
       </View>
     </AnimatedTapGestureHandler>
   )
-}
+})
 
 BottomSheet.defaultProps = defaultProps
 
