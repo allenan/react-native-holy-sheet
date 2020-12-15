@@ -9,8 +9,7 @@
     "gesture",
     "handler"
   ],
-  "main": "src/index.tsx",
-  "types": "./lib/index.d.ts",
+  "main": "src/index.ts",
   "license": "MIT",
   "private": false,
   "devDependencies": {
