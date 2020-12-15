@@ -6,8 +6,8 @@ const Basic = () => {
   return (
     <>
       <StatusBar barStyle="dark-content" />
-      <SafeAreaView style={styles.container}>
-        <View style={{ flex: 1, backgroundColor: 'blue' }}>
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.container}>
           <BottomSheet snapPoints={[50, 300, 600]} initialSnapIndex={1}>
             {Array.from({ length: 10 }).map((_, i) => (
               <View key={`item-${i}`} style={styles.item}>
@@ -22,9 +22,13 @@ const Basic = () => {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
     backgroundColor: 'red',
+  },
+  container: {
+    flex: 1,
+    backgroundColor: 'blue',
   },
   item: {
     padding: 20,

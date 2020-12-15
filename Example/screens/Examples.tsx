@@ -21,6 +21,7 @@ const Examples = ({ navigation }) => {
             <ExampleLink name="Basic" onPress={() => navigate('Basic')} />
             <ExampleLink name="FlatList" onPress={() => navigate('FlatList')} />
             <ExampleLink name="Horizontal Scroll" onPress={() => navigate('Horizontal')} />
+            <ExampleLink name="Derived Value Animation" onPress={() => navigate('Derived')} />
           </ScrollView>
         </View>
       </SafeAreaView>

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { FlatList, StyleProp, View, ViewStyle, ScrollView } from 'react-native'
+import { FlatList, StyleProp, View, ViewStyle, ScrollView, StyleSheet } from 'react-native'
 import {
   NativeViewGestureHandler,
   PanGestureHandler,
@@ -12,6 +12,7 @@ import Animated, {
   useAnimatedGestureHandler,
   useAnimatedProps,
   useAnimatedScrollHandler,
+  useDerivedValue,
 } from 'react-native-reanimated'
 import Header from './Header'
 
@@ -27,6 +28,7 @@ type Props = {
   flatListProps?: FlatListProps
   style?: StyleProp<ViewStyle>
   containerStyle?: StyleProp<ViewStyle>
+  snapProgress?: Animated.SharedValue<number>
 }
 
 type FlatListProps = {
@@ -44,6 +46,12 @@ const defaultProps: Props = {
   containerStyle: {},
 }
 
+function clamp(number: number, min: number, max: number): number {
+  'worklet'
+
+  return Math.min(max, Math.max(min, number))
+}
+
 const BottomSheet: React.FC<Props> = (props) => {
   const {
     snapPoints,
@@ -54,6 +62,7 @@ const BottomSheet: React.FC<Props> = (props) => {
     style,
     containerStyle,
     children,
+    snapProgress,
   } = props
 
   // trigger a re-render on mount in order to get maxDeltaY
@@ -70,24 +79,44 @@ const BottomSheet: React.FC<Props> = (props) => {
   const panRef = useRef()
   const scrollRef = useRef()
 
-  const translation = useSharedValue(-snapPoints[initialSnapIndex])
-  const snapIndex = useSharedValue(initialSnapIndex)
-  const lastSnap = useSharedValue(snapPoints[initialSnapIndex])
-  const scrollOffset = useSharedValue(0)
+  const translation = useSharedValue<number>(-snapPoints[initialSnapIndex])
+  const snapIndex = useSharedValue<number>(initialSnapIndex)
+  const lastSnap = useSharedValue<number>(snapPoints[initialSnapIndex])
+  const scrollOffset = useSharedValue<number>(0)
+  const isSnapping = useSharedValue({ fromIndex: 0, toIndex: 0, active: false })
+
+  // if the invoking component passes in a snapProgress sharedValue, we will
+  // derive that value from the sharedValues within this component
+  if (snapProgress) {
+    useDerivedValue(() => {
+      if (isSnapping.value.active) {
+        const fromSnap = snapPoints[isSnapping.value.fromIndex]
+        const toSnap = snapPoints[isSnapping.value.toIndex]
+        const clampedTranslation = clamp(
+          -translation.value,
+          Math.min(fromSnap, toSnap),
+          Math.max(fromSnap, toSnap),
+        )
+        return (snapProgress.value = clampedTranslation / maxSnap)
+      }
+      return (snapProgress.value = -translation.value / maxSnap)
+    })
+  }
 
   // spring the sheet to a snap point referenced by index
   function setSnapPoint(index: number) {
     'worklet'
 
-    function clamp(number: number, min: number, max: number): number {
-      return Math.min(max, Math.max(min, number))
-    }
-
     const clampedIndex = clamp(index, 0, snapPoints.length - 1)
 
+    isSnapping.value = { active: true, fromIndex: snapIndex.value, toIndex: clampedIndex }
     snapIndex.value = clampedIndex
     lastSnap.value = snapPoints[clampedIndex]
-    translation.value = withSpring(-snapPoints[clampedIndex], springConfig)
+    translation.value = withSpring(-snapPoints[clampedIndex], springConfig, (isFinished) => {
+      if (isFinished) {
+        isSnapping.value = { fromIndex: 0, toIndex: 0, active: false }
+      }
+    })
   }
 
   const gestureHandler = useAnimatedGestureHandler({
@@ -203,23 +232,9 @@ const BottomSheet: React.FC<Props> = (props) => {
 
   return (
     <AnimatedTapGestureHandler ref={tapRef} maxDurationMs={100000} animatedProps={tapProps}>
-      <View pointerEvents="box-none" style={{ flex: 1 }}>
-        <Animated.View style={[{ flex: 1 }, animatedStyles]}>
-          <View
-            style={[
-              {
-                flex: 1,
-                backgroundColor: 'white',
-                borderRadius: 10,
-                position: 'absolute',
-                left: 0,
-                right: 0,
-                height: 2000,
-                bottom: -2000,
-              },
-              style,
-            ]}
-          >
+      <View pointerEvents="box-none" style={styles.outerContainer}>
+        <Animated.View style={[styles.sheet, style, animatedStyles]}>
+          <View>
             {renderHeader && (
               <PanGestureHandler ref={headerRef} onGestureEvent={headerGestureHandler}>
                 <Animated.View>{renderHeader()}</Animated.View>
@@ -250,5 +265,24 @@ const BottomSheet: React.FC<Props> = (props) => {
 }
 
 BottomSheet.defaultProps = defaultProps
+
+const styles = StyleSheet.create({
+  outerContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  sheet: {
+    flex: 1,
+    backgroundColor: 'white',
+    borderRadius: 10,
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: 2000,
+    bottom: -2000,
+  },
+})
 
 export default BottomSheet

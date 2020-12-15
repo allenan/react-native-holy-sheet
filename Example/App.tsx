@@ -15,6 +15,7 @@ import Basic from './examples/Basic'
 import Examples from './screens/Examples'
 import FlatList from './examples/FlatList'
 import Horizontal from './examples/Horizontal'
+import Derived from './examples/Derived'
 
 const Stack = createStackNavigator()
 
@@ -33,6 +34,11 @@ const App = () => {
           name="Horizontal"
           component={Horizontal}
           options={{ title: 'Horizontal Scroll' }}
+        />
+        <Stack.Screen
+          name="Derived"
+          component={Derived}
+          options={{ title: 'Derived Value' }}
         />
       </Stack.Navigator>
     </NavigationContainer>
