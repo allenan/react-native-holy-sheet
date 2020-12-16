@@ -162,7 +162,7 @@ const BottomSheet = React.forwardRef((props: Props, ref: React.Ref<BottomSheetHa
       // y position and the gesture in the translation
       let nextValue = ctx.startY + event.translationY
 
-      if (event.translationY > 0) {
+      if (event.translationY > 0 && lastSnap.value === maxSnap) {
         // if we're gesturing down, take the scroll offset into
         // account so that the sheet doesn't move while scrolling
         // back to the top of the scrollview
@@ -175,7 +175,11 @@ const BottomSheet = React.forwardRef((props: Props, ref: React.Ref<BottomSheetHa
       }
     },
     onEnd: (event, ctx: GestureContext) => {
-      if (event.translationY > 0 && ctx.offsetY - event.translationY > 0) {
+      if (
+        event.translationY > 0 &&
+        ctx.offsetY - event.translationY > 0 &&
+        lastSnap.value === maxSnap
+      ) {
         // if we're gesturing down, but we haven't scrolled the scrollview
         // all the way back to the top, then don't snap
         return
