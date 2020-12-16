@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useImperativeHandle, forwardRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { FlatList, StyleProp, View, ViewStyle, ScrollView, StyleSheet } from 'react-native'
 import {
   NativeViewGestureHandler,
@@ -57,7 +57,6 @@ type BottomSheetHandle = {
   snapTo: (index?: number) => void
 }
 
-// const BottomSheet: React.FC<Props> = (props, ref) => {
 const BottomSheet = React.forwardRef((props: Props, ref: React.Ref<BottomSheetHandle>) => {
   const {
     snapPoints,
@@ -89,7 +88,7 @@ const BottomSheet = React.forwardRef((props: Props, ref: React.Ref<BottomSheetHa
   const snapIndex = useSharedValue<number>(initialSnapIndex)
   const lastSnap = useSharedValue<number>(snapPoints[initialSnapIndex])
   const scrollOffset = useSharedValue<number>(0)
-  const isSnapping = useSharedValue({ fromIndex: 0, toIndex: 0, active: false })
+  const isSnapping = useSharedValue({ fromIndex: 0, toIndex: 0, active: false, hitTarget: false })
 
   React.useImperativeHandle(ref, () => ({
     snapTo(index?: number): void {
@@ -104,12 +103,22 @@ const BottomSheet = React.forwardRef((props: Props, ref: React.Ref<BottomSheetHa
       if (isSnapping.value.active) {
         const fromSnap = snapPoints[isSnapping.value.fromIndex]
         const toSnap = snapPoints[isSnapping.value.toIndex]
-        const clampedTranslation = clamp(
-          -translation.value,
-          Math.min(fromSnap, toSnap),
-          Math.max(fromSnap, toSnap),
-        )
-        return (snapProgress.value = clampedTranslation / maxSnap)
+
+        if (isSnapping.value.hitTarget) {
+          return (snapProgress.value = toSnap / maxSnap)
+        }
+
+        if (toSnap > fromSnap && -translation.value >= toSnap) {
+          // if snapping up and we've reached our target
+          isSnapping.value = { ...isSnapping.value, hitTarget: true }
+          return (snapProgress.value = toSnap / maxSnap)
+        }
+
+        if (toSnap < fromSnap && -translation.value <= toSnap) {
+          // if snapping down and we've reached our target
+          isSnapping.value = { ...isSnapping.value, hitTarget: true }
+          return (snapProgress.value = toSnap / maxSnap)
+        }
       }
       return (snapProgress.value = -translation.value / maxSnap)
     })
@@ -121,12 +130,17 @@ const BottomSheet = React.forwardRef((props: Props, ref: React.Ref<BottomSheetHa
 
     const clampedIndex = clamp(index, 0, snapPoints.length - 1)
 
-    isSnapping.value = { active: true, fromIndex: snapIndex.value, toIndex: clampedIndex }
+    isSnapping.value = {
+      active: true,
+      fromIndex: snapIndex.value,
+      toIndex: clampedIndex,
+      hitTarget: false,
+    }
     snapIndex.value = clampedIndex
     lastSnap.value = snapPoints[clampedIndex]
     translation.value = withSpring(-snapPoints[clampedIndex], springConfig, (isFinished) => {
       if (isFinished) {
-        isSnapping.value = { fromIndex: 0, toIndex: 0, active: false }
+        isSnapping.value = { fromIndex: 0, toIndex: 0, active: false, hitTarget: false }
       }
     })
   }
