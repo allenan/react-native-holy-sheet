@@ -28,12 +28,12 @@ const AnimatedFlatList = Animated.createAnimatedComponent(FlatList)
 const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView)
 const AnimatedTapGestureHandler = Animated.createAnimatedComponent(TapGestureHandler)
 
-type Props<T = Object[]> = {
+type Props = {
   snapPoints: number[]
   initialSnapIndex: number
   renderHeader?: () => React.ReactNode | false
   springConfig?: Animated.WithSpringConfig
-  flatListProps?: FlatListProps<T>
+  flatListProps?: FlatListProps<any>
   style?: StyleProp<ViewStyle>
   containerStyle?: StyleProp<ViewStyle>
   snapProgress?: Animated.SharedValue<number>
