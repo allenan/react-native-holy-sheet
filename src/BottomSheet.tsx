@@ -1,5 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { FlatList, StyleProp, View, ViewStyle, ScrollView, StyleSheet } from 'react-native'
+import {
+  FlatList,
+  StyleProp,
+  View,
+  ViewStyle,
+  ScrollView,
+  StyleSheet,
+  FlatListProps,
+} from 'react-native'
 import {
   NativeViewGestureHandler,
   PanGestureHandler,
@@ -20,22 +28,16 @@ const AnimatedFlatList = Animated.createAnimatedComponent(FlatList)
 const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView)
 const AnimatedTapGestureHandler = Animated.createAnimatedComponent(TapGestureHandler)
 
-type Props = {
+type Props<T = Object[]> = {
   snapPoints: number[]
   initialSnapIndex: number
   renderHeader?: () => React.ReactNode | false
   springConfig?: Animated.WithSpringConfig
-  flatListProps?: FlatListProps
+  flatListProps?: FlatListProps<T>
   style?: StyleProp<ViewStyle>
   containerStyle?: StyleProp<ViewStyle>
   snapProgress?: Animated.SharedValue<number>
   children?: any
-}
-
-type FlatListProps = {
-  data: any
-  renderItem: any
-  keyExtractor: (item: any) => any
 }
 
 const defaultProps: Props = {
@@ -237,9 +239,7 @@ const BottomSheet = React.forwardRef((props: Props, ref: React.Ref<BottomSheetHa
     if (flatListProps) {
       return (
         <AnimatedFlatList
-          data={flatListProps.data}
-          renderItem={flatListProps.renderItem}
-          keyExtractor={flatListProps.keyExtractor}
+          {...flatListProps}
           showsVerticalScrollIndicator={false}
           onScroll={scrollHandler}
           bounces={false}
