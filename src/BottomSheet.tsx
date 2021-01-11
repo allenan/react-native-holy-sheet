@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState, Ref } from 'react'
 import {
   FlatList,
   StyleProp,
@@ -33,7 +33,7 @@ type Props = {
   initialSnapIndex: number
   renderHeader?: () => React.ReactNode | false
   springConfig?: Animated.WithSpringConfig
-  flatListProps?: FlatListProps<any>
+  flatListProps?: FlatListProps<any> & { ref: Ref<FlatList> }
   style?: StyleProp<ViewStyle>
   containerStyle?: StyleProp<ViewStyle>
   snapProgress?: Animated.SharedValue<number>
@@ -235,68 +235,84 @@ const BottomSheet = React.forwardRef((props: Props, ref: React.Ref<BottomSheetHa
     maxDeltaY: maxSnap - lastSnap.value,
   }))
 
-  const renderInner = () => {
-    if (flatListProps) {
-      return (
-        <AnimatedFlatList
-          {...flatListProps}
-          showsVerticalScrollIndicator={false}
-          onScroll={scrollHandler}
-          bounces={false}
-          contentContainerStyle={{
-            paddingBottom: 1500,
-          }}
-        />
-      )
-    }
-
+  const renderScrollView = () => {
     return (
-      <AnimatedScrollView
-        showsVerticalScrollIndicator={false}
-        bounces={false}
-        onScroll={scrollHandler}
-        scrollEventThrottle={16}
-        contentContainerStyle={{
-          paddingBottom: 1500,
-        }}
-      >
-        {children}
-      </AnimatedScrollView>
+      <AnimatedTapGestureHandler ref={tapRef} maxDurationMs={100000} animatedProps={tapProps}>
+        <View pointerEvents="box-none" style={styles.outerContainer}>
+          <Animated.View style={[styles.sheet, style, animatedStyles]}>
+            <View>
+              {renderHeader && (
+                <PanGestureHandler ref={headerRef} onGestureEvent={headerGestureHandler}>
+                  <Animated.View>{renderHeader()}</Animated.View>
+                </PanGestureHandler>
+              )}
+              <PanGestureHandler
+                ref={panRef}
+                simultaneousHandlers={[scrollRef, tapRef]}
+                onGestureEvent={gestureHandler}
+              >
+                <Animated.View>
+                  <View style={[{ paddingHorizontal: 10 }, containerStyle]}>
+                    <NativeViewGestureHandler
+                      ref={scrollRef}
+                      simultaneousHandlers={panRef}
+                      waitFor={tapRef}
+                    >
+                      <AnimatedScrollView
+                        showsVerticalScrollIndicator={false}
+                        bounces={false}
+                        onScroll={scrollHandler}
+                        scrollEventThrottle={16}
+                        contentContainerStyle={{
+                          paddingBottom: 1500,
+                        }}
+                      >
+                        {children}
+                      </AnimatedScrollView>
+                    </NativeViewGestureHandler>
+                  </View>
+                </Animated.View>
+              </PanGestureHandler>
+            </View>
+          </Animated.View>
+        </View>
+      </AnimatedTapGestureHandler>
     )
   }
 
-  return (
-    <AnimatedTapGestureHandler ref={tapRef} maxDurationMs={100000} animatedProps={tapProps}>
-      <View pointerEvents="box-none" style={styles.outerContainer}>
-        <Animated.View style={[styles.sheet, style, animatedStyles]}>
-          <View>
-            {renderHeader && (
-              <PanGestureHandler ref={headerRef} onGestureEvent={headerGestureHandler}>
-                <Animated.View>{renderHeader()}</Animated.View>
-              </PanGestureHandler>
-            )}
-            <PanGestureHandler
-              ref={panRef}
-              simultaneousHandlers={[scrollRef, tapRef]}
-              onGestureEvent={gestureHandler}
-            >
-              <Animated.View>
-                <View style={[{ paddingHorizontal: 10 }, containerStyle]}>
-                  <NativeViewGestureHandler
-                    ref={scrollRef}
-                    simultaneousHandlers={panRef}
-                    waitFor={tapRef}
-                  >
-                    {renderInner()}
-                  </NativeViewGestureHandler>
-                </View>
-              </Animated.View>
+  const renderFlatList = () => {
+    return (
+      <Animated.View style={[styles.sheet, style, animatedStyles]}>
+        <View>
+          {renderHeader && (
+            <PanGestureHandler ref={headerRef} onGestureEvent={headerGestureHandler}>
+              <Animated.View>{renderHeader()}</Animated.View>
             </PanGestureHandler>
-          </View>
-        </Animated.View>
-      </View>
-    </AnimatedTapGestureHandler>
-  )
+          )}
+          <Animated.View>
+            <View style={[{ paddingHorizontal: 10 }, containerStyle]}>
+              <NativeViewGestureHandler
+                ref={scrollRef}
+                simultaneousHandlers={panRef}
+                waitFor={tapRef}
+              >
+                <AnimatedFlatList
+                  {...flatListProps}
+                  showsVerticalScrollIndicator={false}
+                  onScroll={scrollHandler}
+                  contentContainerStyle={{
+                    paddingBottom: 2000,
+                  }}
+                />
+              </NativeViewGestureHandler>
+            </View>
+          </Animated.View>
+        </View>
+      </Animated.View>
+    )
+  }
+
+  return flatListProps ? renderFlatList() : renderScrollView()
 })
 
 BottomSheet.defaultProps = defaultProps
