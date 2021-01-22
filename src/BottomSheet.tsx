@@ -22,6 +22,7 @@ import Animated, {
   useAnimatedProps,
   useAnimatedScrollHandler,
   useDerivedValue,
+  runOnJS,
 } from 'react-native-reanimated'
 import Header from './Header'
 
@@ -39,6 +40,7 @@ type Props = {
   containerStyle?: StyleProp<ViewStyle>
   snapProgress?: Animated.SharedValue<number>
   children?: any
+  onClose?: () => void
 }
 
 const defaultProps: Props = {
@@ -71,6 +73,7 @@ const BottomSheet = React.forwardRef((props: Props, ref: React.Ref<BottomSheetHa
     containerStyle,
     children,
     snapProgress,
+    onClose,
   } = props
 
   // trigger a re-render on mount in order to get maxDeltaY
@@ -144,6 +147,9 @@ const BottomSheet = React.forwardRef((props: Props, ref: React.Ref<BottomSheetHa
     translation.value = withSpring(-snapPoints[clampedIndex], springConfig, (isFinished) => {
       if (isFinished) {
         isSnapping.value = { fromIndex: 0, toIndex: 0, active: false, hitTarget: false }
+        if (clampedIndex === 0 && onClose) {
+          runOnJS(onClose)()
+        }
       }
     })
   }
