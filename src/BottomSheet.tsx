@@ -41,6 +41,7 @@ type Props = {
   snapProgress?: Animated.SharedValue<number>
   children?: any
   onClose?: () => void
+  onCloseStart?: () => void
 }
 
 const defaultProps: Props = {
@@ -74,6 +75,7 @@ const BottomSheet = React.forwardRef((props: Props, ref: React.Ref<BottomSheetHa
     children,
     snapProgress,
     onClose,
+    onCloseStart,
   } = props
 
   // trigger a re-render on mount in order to get maxDeltaY
@@ -135,6 +137,10 @@ const BottomSheet = React.forwardRef((props: Props, ref: React.Ref<BottomSheetHa
     'worklet'
 
     const clampedIndex = clamp(index, 0, snapPoints.length - 1)
+
+    if (clampedIndex === 0 && onCloseStart) {
+      runOnJS(onCloseStart)()
+    }
 
     isSnapping.value = {
       active: true,
